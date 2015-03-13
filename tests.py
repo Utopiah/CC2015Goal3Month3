@@ -11,7 +11,7 @@ class TestSequenceFunctions(unittest.TestCase):
     def test_load_past_creations(self):
         raise NotImplementedError
 
-    def test_make_new_creations(self):
+    def test_make_new_creation(self):
         raise NotImplementedError
 
     def test_creation_respect_structure(self):
