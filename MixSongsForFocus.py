@@ -97,11 +97,16 @@ def mix_songs_by_id(mymix,i):
     print "mixing %s with %s" % (mymix, i)
     mixed = mymix + "/" + i
     return mixed
-from pydub import AudioSegment
-from pydub.silence import detect_nonsilent
- 
+
+# def normalize_multiple_songs()
+#    https://github.com/jiaaro/pydub/issues/90
+#    cf http://normalize.nongnu.org/ or https://gist.github.com/slhck/99020a1a54e59cf94042
+#    because of http://productionadvice.co.uk/youtube-loudness/
 
 def get_bpm(seg):    
+#    cf analysis.tempo() http://atl.me/overvie
+#       consider pydub high/low-pass filters and dBFS attribute
+#       e.g. https://gist.github.com/jiaaro/faa96fabd252b8552066
     # from https://gist.github.com/jiaaro/faa96fabd252b8552066
     # reduce loudness of sounds over 120Hz (focus on bass drum, etc)
     seg = seg.low_pass_filter(120.0)
@@ -121,8 +126,8 @@ def get_bpm(seg):
     bpm = 60000 / space 
     return bpm
 
-class Creations(object):
-    """ Class that handles the creations of new mix """
+class Portfolio(object):
+    """ Class that handles multiple created creations over time """
 
     def __init__(self):
         pass
@@ -136,15 +141,28 @@ class Creations(object):
         """ Generate a new creation """
         pass
 
-    def respect_structure(self):
-        """ Verify that a creation follows a set of predefined patterns """
-        pass
-
     def save_new(self):
         """ Save the new creation with its meta-data in order
             to make sure the next execution will make something different """
         # cf ../CC2015Goal3Month1/BlendMeAPicture.py using pickle
         pass
+
+class Creation(object):
+    """ Class that handles the creation itself """
+
+    def __init__(self, library):
+        pass
+
+    def respect_structure(self):
+        """ Verify that a creation follows a set of predefined patterns """
+        pass
+
+    def verify_novelty(self):
+        """ verify that a creation is truly novel compared to other creations in the portfolio
+            and outside of the portfolio """
+
+    def blends_items(self):
+        """ Blends multiple items from the library to make a new creation """
 
 class Library(object):
     """ Class that handles songs that will be part of a mix """
@@ -217,6 +235,19 @@ if __name__ == "__main__":
     grabber = True
     mixer = True
 
+    # Prototype of what the class based versions could be used as
+    MyPorfolio = Portfolio()
+    # should load automatically previous creations
+    MyLibrary = Library()
+    # should load automatically previously found items
+    MyCreation = Creation(MyLibrary)
+    # MyLibrary.extend() called internally if not enough appropriate items
+    while not MyCreation.verify_novelty():
+        MyCreation = Creation(MyLibrary)
+        MyLibrary.extend() # not necessarily necessary
+    else:
+        MyPortfolio.save(MyCreation)
+
     if args.grabber:
         if args.verbose:
             print "Grabber only, no mixing involved"
@@ -227,15 +258,19 @@ if __name__ == "__main__":
         grabber = False
 
     if grabber:
-        url_top10_for_search_text = "http://gdata.youtube.com/feeds/api/videos?max-results=10&orderby=viewCount&v=2&alt=jsonc&q=" + args.favouritetune
-        # would be safer to remove very long songs wihch are most likely mix
-        # https://developers.google.com/youtube/2.0/developers_guide_protocol#durationsp
+#url_details_by_id = "http://gdata.youtube.com/feeds/api/videos/" + item_id + "?v=2&alt=jsonc"
+#url_related_by_id = "http://gdata.youtube.com/feeds/api/videos/" + item_id + "/related?v=2&alt=jsonc"
+#url_top10_for_search_text = "http://gdata.youtube.com/feeds/api/videos?max-results=10&orderby=viewCount&v=2&alt=jsonc&q=" + searchtext
+#url_top_rated_global = "http://gdata.youtube.com/feeds/api/standardfeeds/top_rated?v=2&alt=jsonc"
+# url = "http://gdata.youtube.com/feeds/api/videos?orderby=viewCount&v=2&alt=jsonc"
+# from https://github.com/jiaaro/pydub#installation
+        url_top10_for_search_text = "http://gdata.youtube.com/feeds/api/videos?max-results=10&orderby=viewCount&v=2&alt=jsonc&q=" + args.favourite_tune
         req = requests.get(url_top10_for_search_text)
         data = json.loads(req.text)
         
         idtoexplorefrom = 0
         for item in data['data']['items']:
-            if args.favouritetune in item['title']:
+            if args.favourite_tune in item['title']:
                 idtoexplorefrom = item['id']
             if idtoexplorefrom == 0:
                 idtoexplorefrom = item['id']
@@ -254,9 +289,9 @@ if __name__ == "__main__":
             # remove song too short (duration < 3*60
                 # fake_download_item_from_id(song_id)
                 if args.test:
-                    download_item_from_id(song_id)
-                else:
                     fake_download_item_from_id(song_id)
+                else:
+                    download_item_from_id(song_id)
         mixorder = item_sort(mysongs)
         mymix = mixorder[0]
         for i in range(1,len(mixorder)):
@@ -279,7 +314,10 @@ if __name__ == "__main__":
         comment = ""
         for i, song in enumerate(playlist_songs):
             # We don't want an abrupt stop at the end, so let's do a 10 second crossfades
-            playlist = playlist.append(song[10*1000:-20*1000], crossfade=(10 * 1000))
+            if args.test:
+                print "Not actually mixing any song"
+            else:
+                playlist = playlist.append(song[10*1000:-20*1000], crossfade=(10 * 1000))
             # TODO detect silences in beginning and ends
             durationsofar += int(song.duration_seconds)
             filename = playlist_filenames[i]
@@ -298,62 +336,9 @@ if __name__ == "__main__":
         # TODO use dedicated dir
         SavingDir = "Creations"
         if args.test:
-            out_f = open("%s_minute_playlist.mp3" % playlist_length, 'wb')
-            playlist.export(out_f, format='mp3',  tags={'artist': 'CC2015Goal3', 'album': 'March 2015 mix', 'comments': comment} )
-        else:
             print "File of duration %s not saved" % playlist_length
             print comment
+        else:
+            out_f = open("%s_minute_playlist.mp3" % playlist_length, 'wb')
+            playlist.export(out_f, format='mp3',  tags={'artist': 'CC2015Goal3', 'album': 'March 2015 mix', 'comments': comment} )
 
-# TODO rebind
-# def debug(self, msg):
-# def warning(self, msg):
-# def error(self, msg):
-# def YTDL_Hook(d):
-# def download_item_from_id(item_id):
-# def fake_download_item_from_id(item_id):
-
-# def item_sort(my_items):
-# def get_related(item_id):
-# def item_details(item):
-# def item_details_by_id(item_id):
-# def not_dupe(item_id):
-# def mix_songs_by_id(mymix,i):
-
-# PROPER CLASSES
-# class Creations(object):
-# def __init__(self):
-# def load_older(self):
-# def make_new(self):
-# def respect_structure(self):
-# def save_new(self):
-
-# class Library(object):
-# def __init__(self):
-# def load_items_from(self):
-# def extend(self):
-# def blend_items_from(self):
-# def find_similar_item_from(self):
-# def modify_item_from(self):
-# def save_items_to(self):
-
-# class songformix(object)
-# def get_avg_bpm()
-#    cf analysis.tempo() http://atl.me/overvie
-#       consider pydub high/low-pass filters and dBFS attribute
-#       e.g. https://gist.github.com/jiaaro/faa96fabd252b8552066
-# def normalize_multiple_songs()
-#    https://github.com/jiaaro/pydub/issues/90
-#    cf http://normalize.nongnu.org/ or https://gist.github.com/slhck/99020a1a54e59cf94042
-#    because of http://productionadvice.co.uk/youtube-loudness/
-
-# NO, to be done AFTER the result is sold!
-# class item
-#   (abstract)
-# class songformix(inherit from class item)
-
-#url_details_by_id = "http://gdata.youtube.com/feeds/api/videos/" + item_id + "?v=2&alt=jsonc"
-#url_related_by_id = "http://gdata.youtube.com/feeds/api/videos/" + item_id + "/related?v=2&alt=jsonc"
-#url_top10_for_search_text = "http://gdata.youtube.com/feeds/api/videos?max-results=10&orderby=viewCount&v=2&alt=jsonc&q=" + searchtext
-#url_top_rated_global = "http://gdata.youtube.com/feeds/api/standardfeeds/top_rated?v=2&alt=jsonc"
-# url = "http://gdata.youtube.com/feeds/api/videos?orderby=viewCount&v=2&alt=jsonc"
-# from https://github.com/jiaaro/pydub#installation
