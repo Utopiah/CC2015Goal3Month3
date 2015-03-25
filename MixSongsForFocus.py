@@ -152,7 +152,91 @@ class Creation(object):
     """ Class that handles the creation itself """
 
     def __init__(self, library):
-        pass
+
+        if grabber:
+    #url_details_by_id = "http://gdata.youtube.com/feeds/api/videos/" + item_id + "?v=2&alt=jsonc"
+    #url_related_by_id = "http://gdata.youtube.com/feeds/api/videos/" + item_id + "/related?v=2&alt=jsonc"
+    #url_top10_for_search_text = "http://gdata.youtube.com/feeds/api/videos?max-results=10&orderby=viewCount&v=2&alt=jsonc&q=" + searchtext
+    #url_top_rated_global = "http://gdata.youtube.com/feeds/api/standardfeeds/top_rated?v=2&alt=jsonc"
+    # url = "http://gdata.youtube.com/feeds/api/videos?orderby=viewCount&v=2&alt=jsonc"
+    # from https://github.com/jiaaro/pydub#installation
+            url_top10_for_search_text = "http://gdata.youtube.com/feeds/api/videos?max-results=10&orderby=viewCount&v=2&alt=jsonc&q=" + args.favourite_tune
+            req = requests.get(url_top10_for_search_text)
+            data = json.loads(req.text)
+            
+            idtoexplorefrom = 0
+            for item in data['data']['items']:
+                if args.favourite_tune in item['title']:
+                    idtoexplorefrom = item['id']
+                if idtoexplorefrom == 0:
+                    idtoexplorefrom = item['id']
+            mysongs = get_related(idtoexplorefrom)
+            for song_id in mysongs:
+                detailed_item = item_details_by_id(song_id)
+                if args.verbose:
+                    print detailed_item
+                #title = "this is - mysong"
+                #currentitle = "this is - another of mysong"
+                #all(wordfromtitle in currentitle.split() for wordfromtitle in title.split())
+                # remove songs that are dupe based on title
+                # remove songs when a same artist threshold is passed (e.g. 30% from same artist)
+                # drop lives
+                if not_dupe(song_id) and (detailed_item['duration'] > 3*60 and detailed_item['duration'] < 9*60) and not "live" in detailed_item['title']:
+                # remove song too short (duration < 3*60
+                    # fake_download_item_from_id(song_id)
+                    if args.test:
+                        fake_download_item_from_id(song_id)
+                    else:
+                        download_item_from_id(song_id)
+            mixorder = item_sort(mysongs)
+            mymix = mixorder[0]
+            for i in range(1,len(mixorder)):
+                mymix = mix_songs_by_id(mymix,mixorder[i])
+    
+        if mixer:
+            # TODO use dedicated dir
+            ItemsDir = "ItemsLibrary"
+            # TODO use only files from playlist
+            # check http://stackoverflow.com/questions/26363558/pydub-concatenate-mp3-in-a-directory
+            playlist_filenames = glob("*.mp3")
+            playlist_songs = [AudioSegment.from_mp3(mp3_file) for mp3_file in playlist_filenames]
+            # TODO check total length, limit to +/-10% of aimed duration
+            first_song = playlist_songs.pop(0)
+            # let's just include the first 30 seconds of the first song (slicing
+            # is done by milliseconds)
+            beginning_of_song = first_song[:60*1000]
+            playlist = beginning_of_song
+            durationsofar = 60
+            comment = ""
+            for i, song in enumerate(playlist_songs):
+                # We don't want an abrupt stop at the end, so let's do a 10 second crossfades
+                if args.test:
+                    print "Not actually mixing any song"
+                else:
+                    playlist = playlist.append(song[10*1000:-20*1000], crossfade=(10 * 1000))
+                # TODO detect silences in beginning and ends
+                durationsofar += int(song.duration_seconds)
+                filename = playlist_filenames[i]
+                comment += filename[:-16] + "; "
+                if args.verbose:
+                    print "Mixing ", filename[:-16]
+                    print "BPM ", get_bpm(song)
+                    print durationsofar, args.duration * 60
+                if durationsofar > (args.duration * 60) :
+                    break
+            # let's fade out the end of the last song
+            playlist = playlist.fade_out(30)
+            # hmm I wonder how long it is... ( len(audio_segment) returns milliseconds )
+            playlist_length = len(playlist) / (1000*60)
+            # lets save it!
+            # TODO use dedicated dir
+            SavingDir = "Creations"
+            if args.test:
+                print "File of duration %s not saved" % playlist_length
+                print comment
+            else:
+                out_f = open("%s_minute_playlist.mp3" % playlist_length, 'wb')
+                playlist.export(out_f, format='mp3',  tags={'artist': 'CC2015Goal3', 'album': 'March 2015 mix', 'comments': comment} )
 
     def respect_structure(self):
         """ Verify that a creation follows a set of predefined patterns """
@@ -234,8 +318,14 @@ if __name__ == "__main__":
         print "We picked a favourite tune of %s" % args.favourite_tune
         print "We picked a veto list of %s" % args.veto_list
 
-    grabber = True
-    mixer = True
+    if args.grabber:
+        if args.verbose:
+            print "Grabber only, no mixing involved"
+        mixer = False
+    if args.mixer:
+        if args.verbose:
+            print "Mixing only, no grabbing involved"
+        grabber = False
 
     # Prototype of what the class based versions could be used as
     MyPortfolio = Portfolio()
@@ -251,98 +341,3 @@ if __name__ == "__main__":
         # MyLibrary.extend() called internally if not enough appropriate items
     else:
         MyPortfolio.save(MyCreation)
-
-    if args.grabber:
-        if args.verbose:
-            print "Grabber only, no mixing involved"
-        mixer = False
-    if args.mixer:
-        if args.verbose:
-            print "Mixing only, no grabbing involved"
-        grabber = False
-
-    if grabber:
-#url_details_by_id = "http://gdata.youtube.com/feeds/api/videos/" + item_id + "?v=2&alt=jsonc"
-#url_related_by_id = "http://gdata.youtube.com/feeds/api/videos/" + item_id + "/related?v=2&alt=jsonc"
-#url_top10_for_search_text = "http://gdata.youtube.com/feeds/api/videos?max-results=10&orderby=viewCount&v=2&alt=jsonc&q=" + searchtext
-#url_top_rated_global = "http://gdata.youtube.com/feeds/api/standardfeeds/top_rated?v=2&alt=jsonc"
-# url = "http://gdata.youtube.com/feeds/api/videos?orderby=viewCount&v=2&alt=jsonc"
-# from https://github.com/jiaaro/pydub#installation
-        url_top10_for_search_text = "http://gdata.youtube.com/feeds/api/videos?max-results=10&orderby=viewCount&v=2&alt=jsonc&q=" + args.favourite_tune
-        req = requests.get(url_top10_for_search_text)
-        data = json.loads(req.text)
-        
-        idtoexplorefrom = 0
-        for item in data['data']['items']:
-            if args.favourite_tune in item['title']:
-                idtoexplorefrom = item['id']
-            if idtoexplorefrom == 0:
-                idtoexplorefrom = item['id']
-        mysongs = get_related(idtoexplorefrom)
-        for song_id in mysongs:
-            detailed_item = item_details_by_id(song_id)
-            if args.verbose:
-                print detailed_item
-            #title = "this is - mysong"
-            #currentitle = "this is - another of mysong"
-            #all(wordfromtitle in currentitle.split() for wordfromtitle in title.split())
-            # remove songs that are dupe based on title
-            # remove songs when a same artist threshold is passed (e.g. 30% from same artist)
-            # drop lives
-            if not_dupe(song_id) and (detailed_item['duration'] > 3*60 and detailed_item['duration'] < 9*60) and not "live" in detailed_item['title']:
-            # remove song too short (duration < 3*60
-                # fake_download_item_from_id(song_id)
-                if args.test:
-                    fake_download_item_from_id(song_id)
-                else:
-                    download_item_from_id(song_id)
-        mixorder = item_sort(mysongs)
-        mymix = mixorder[0]
-        for i in range(1,len(mixorder)):
-            mymix = mix_songs_by_id(mymix,mixorder[i])
-
-    if mixer:
-        # TODO use dedicated dir
-        ItemsDir = "ItemsLibrary"
-        # TODO use only files from playlist
-        # check http://stackoverflow.com/questions/26363558/pydub-concatenate-mp3-in-a-directory
-        playlist_filenames = glob("*.mp3")
-        playlist_songs = [AudioSegment.from_mp3(mp3_file) for mp3_file in playlist_filenames]
-        # TODO check total length, limit to +/-10% of aimed duration
-        first_song = playlist_songs.pop(0)
-        # let's just include the first 30 seconds of the first song (slicing
-        # is done by milliseconds)
-        beginning_of_song = first_song[:60*1000]
-        playlist = beginning_of_song
-        durationsofar = 60
-        comment = ""
-        for i, song in enumerate(playlist_songs):
-            # We don't want an abrupt stop at the end, so let's do a 10 second crossfades
-            if args.test:
-                print "Not actually mixing any song"
-            else:
-                playlist = playlist.append(song[10*1000:-20*1000], crossfade=(10 * 1000))
-            # TODO detect silences in beginning and ends
-            durationsofar += int(song.duration_seconds)
-            filename = playlist_filenames[i]
-            comment += filename[:-16] + "; "
-            if args.verbose:
-                print "Mixing ", filename[:-16]
-                print "BPM ", get_bpm(song)
-                print durationsofar, args.duration * 60
-            if durationsofar > (args.duration * 60) :
-                break
-        # let's fade out the end of the last song
-        playlist = playlist.fade_out(30)
-        # hmm I wonder how long it is... ( len(audio_segment) returns milliseconds )
-        playlist_length = len(playlist) / (1000*60)
-        # lets save it!
-        # TODO use dedicated dir
-        SavingDir = "Creations"
-        if args.test:
-            print "File of duration %s not saved" % playlist_length
-            print comment
-        else:
-            out_f = open("%s_minute_playlist.mp3" % playlist_length, 'wb')
-            playlist.export(out_f, format='mp3',  tags={'artist': 'CC2015Goal3', 'album': 'March 2015 mix', 'comments': comment} )
-
