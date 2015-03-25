@@ -130,6 +130,7 @@ class Portfolio(object):
     """ Class that handles multiple created creations over time """
 
     def __init__(self):
+        # should call self.load_older()
         pass
 
     def load_older(self):
@@ -168,6 +169,7 @@ class Library(object):
     """ Class that handles songs that will be part of a mix """
 
     def __init__(self):
+        # should call self.load_items_from()
         pass
 
     def load_items_from(self):
@@ -236,15 +238,17 @@ if __name__ == "__main__":
     mixer = True
 
     # Prototype of what the class based versions could be used as
-    MyPorfolio = Portfolio()
+    MyPortfolio = Portfolio()
+    # MyPortfolio.loadPastCreations() should be done during __init__
     # should load automatically previous creations
     MyLibrary = Library()
-    # should load automatically previously found items
+    # MyLibrary.loadItems() should be done during __init__
     MyCreation = Creation(MyLibrary)
-    # MyLibrary.extend() called internally if not enough appropriate items
     while not MyCreation.verify_novelty():
+        # TODO basically the ONLY function used in this month work
+        # no library proper, no portfolio proper unlike previous months
         MyCreation = Creation(MyLibrary)
-        MyLibrary.extend() # not necessarily necessary
+        # MyLibrary.extend() called internally if not enough appropriate items
     else:
         MyPortfolio.save(MyCreation)
 
