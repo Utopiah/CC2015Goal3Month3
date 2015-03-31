@@ -14,6 +14,7 @@ class YTDL_MyLogger(object):
 
 class Library(object):
     """ Class that handles songs that will be part of a mix """
+    storeditemsinlibrary = "itemsinlibrary.pkl"
     items = []
 
     ydl_opts = {
@@ -49,7 +50,9 @@ class Library(object):
     def load_items_from(self):
         """ Load the songs that were already used before in a library """
         # cf ../CC2015Goal3Month1/BlendMeAPicture.py using pickle
-        pass
+        if os.path.isfile(storeditemsinlibrary):
+            with open(storeditemsinlibrary, 'rb') as inputfile:
+                items = pickle.load(inputfile)
 
     def extend(self):
         """ Use multiple sources with several criteria
@@ -120,4 +123,5 @@ class Library(object):
     def save_items_to(self):
         """ Save items to library after it has been extended """
         # cf ../CC2015Goal3Month1/BlendMeAPicture.py using pickle
-        pass
+        with open(storeditems, 'wb') as output:
+            pickle.dump(items, output, pickle.HIGHEST_PROTOCOL)
