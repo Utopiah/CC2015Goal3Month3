@@ -5,7 +5,6 @@ import argparse
 import Portfolio
 import Creation
 import Library
-import Item
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Module to make new personnalized mix for focus")

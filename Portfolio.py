@@ -1,6 +1,8 @@
-import pickle
 import os
+import pickle
  
+import Creation
+
 class Portfolio(object):
     """ Class that handles multiple created creations over time """
     storedcreations = "storedcreations.pkl"

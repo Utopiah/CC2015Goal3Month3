@@ -3,6 +3,8 @@ import requests
 import json
 import youtube_dl
 
+import Item
+
 # Youtube dl code form https://github.com/rg3/youtube-dl/blob/master/README.md#readme
 class YTDL_MyLogger(object):
     def debug(self, msg):
@@ -11,6 +13,10 @@ class YTDL_MyLogger(object):
         pass
     def error(self, msg):
         print(msg)
+
+def YTDL_Hook(d):
+    if d['status'] == 'finished':
+        print('Done downloading, now converting ...')
 
 class Library(object):
     """ Class that handles songs that will be part of a mix """
@@ -28,17 +34,12 @@ class Library(object):
             'preferredquality': '192',
         }],
         'logger': YTDL_MyLogger(),
-        'progress_hooks': [self.YTDL_Hook],
+        'progress_hooks': [YTDL_Hook],
     }
 
     def __init__(self):
         # should call self.load_items_from() except if ones wants to start fro scratch
         pass
-
-
-    def YTDL_Hook(d):
-        if d['status'] == 'finished':
-            print('Done downloading, now converting ...')
 
     def download_item_from_id(item_id):
         with youtube_dl.YoutubeDL(self.ydl_opts) as ydl:

@@ -2,7 +2,6 @@ import os
 from random import shuffle
 from glob import glob
 from pydub import AudioSegment
-from pydub.silence import detect_nonsilent 
 
 class Creation(object):
     """ Class that handles the creation itself """
