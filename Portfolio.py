@@ -15,9 +15,9 @@ class Portfolio(object):
     def load_older(self):
         """ Load the previous mixes with their meta-data """
         # cf ../CC2015Goal3Month1/BlendMeAPicture.py using pickle
-        if os.path.isfile(storedcreations):
-            with open(storedcreatiions, 'rb') as inputfile:
-                creations = pickle.load(inputfile)
+        if os.path.isfile(self.storedcreations):
+            with open(self.storedcreatiions, 'rb') as inputfile:
+                self.creations = pickle.load(inputfile)
 
     def make_new(self):
         """ Generate a new creation """
@@ -27,5 +27,5 @@ class Portfolio(object):
         """ Save the new creation with its meta-data in order
             to make sure the next execution will make something different """
         # cf ../CC2015Goal3Month1/BlendMeAPicture.py using pickle
-        with open(storedcreations, 'wb') as output:
-            pickle.dump(creations, output, pickle.HIGHEST_PROTOCOL)
+        with open(self.storedcreations, 'wb') as output:
+            pickle.dump(self.creations, output, pickle.HIGHEST_PROTOCOL)

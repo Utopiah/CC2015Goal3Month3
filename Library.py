@@ -51,9 +51,9 @@ class Library(object):
     def load_items_from(self):
         """ Load the songs that were already used before in a library """
         # cf ../CC2015Goal3Month1/BlendMeAPicture.py using pickle
-        if os.path.isfile(storeditemsinlibrary):
-            with open(storeditemsinlibrary, 'rb') as inputfile:
-                items = pickle.load(inputfile)
+        if os.path.isfile(self.storeditemsinlibrary):
+            with open(self.storeditemsinlibrary, 'rb') as inputfile:
+                self.items = pickle.load(inputfile)
 
     def extend(self):
         """ Use multiple sources with several criteria
@@ -124,5 +124,5 @@ class Library(object):
     def save_items_to(self):
         """ Save items to library after it has been extended """
         # cf ../CC2015Goal3Month1/BlendMeAPicture.py using pickle
-        with open(storeditems, 'wb') as output:
-            pickle.dump(items, output, pickle.HIGHEST_PROTOCOL)
+        with open(self.storeditems, 'wb') as output:
+            pickle.dump(self.items, output, pickle.HIGHEST_PROTOCOL)

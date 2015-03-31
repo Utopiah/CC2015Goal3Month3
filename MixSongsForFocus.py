@@ -2,9 +2,9 @@
 
 import argparse
 
-import Portfolio
-import Creation
-import Library
+from Portfolio import *
+from Creation import *
+from Library import *
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Module to make new personnalized mix for focus")
